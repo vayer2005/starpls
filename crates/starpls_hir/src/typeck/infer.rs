@@ -511,7 +511,7 @@ impl TyContext<'_> {
                                             .find_map(|(name, attr)| {
                                                 if name == field {
                                                     attr.as_ref()
-                                                        .map(|attr| attr.resolved_ty(rule_kind))
+                                                        .map(|attr| attr.resolved_ty(self.db, rule_kind))
                                                 } else {
                                                     None
                                                 }

@@ -1406,12 +1406,14 @@ impl Attribute {
         }
     }
 
-    pub fn resolved_ty(&self, rule_kind: &RuleKind) -> Ty {
+    pub fn resolved_ty(&self, db: &dyn Db, rule_kind: &RuleKind) -> Ty {
         let resolved_label_ty = || match rule_kind {
             RuleKind::Build => Ty::target(),
-            // TODO(withered-magic): This should be the `Label` type, maybe we should retrieve it
-            // from the builtins?
-            RuleKind::Repository => Ty::unknown(),
+            RuleKind::Repository => builtin_types(db, Dialect::Bazel)
+                .types(db)
+                .get("Label")
+                .cloned()
+                .unwrap_or_else(Ty::unknown),
         };
 
         match self.kind {

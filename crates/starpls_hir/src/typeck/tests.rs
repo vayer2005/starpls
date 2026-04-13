@@ -56,6 +56,7 @@ fn check_infer_with_options(input: &str, expect: Expect, options: InferenceOptio
     builder.add_function("macro");
     builder.add_function("struct");
     builder.add_type(FixtureType::new("File", vec![], vec![]));
+    builder.add_type(FixtureType::new("Label", vec![], vec![]));
     builder.add_type(FixtureType::new(
         "ctx",
         vec![
@@ -1417,10 +1418,10 @@ my_rule = repository_rule(
             150..167 "attr.label_list()": Attribute
             132..174 "{\n        \"srcs\": attr.label_list(),\n    }": dict[string, Attribute]
             81..177 "rule(\n    implementation = _rule_impl,\n    attrs = {\n        \"srcs\": attr.label_list(),\n    },\n)": rule
-            226..230 "srcs": list[Unknown]
+            226..230 "srcs": list[Label]
             233..247 "repository_ctx": repository_ctx
             233..252 "repository_ctx.attr": struct
-            233..257 "repository_ctx.attr.srcs": list[Unknown]
+            233..257 "repository_ctx.attr.srcs": list[Label]
             259..266 "my_rule": repository_rule
             269..284 "repository_rule": def repository_rule(implementation: Unknown, attrs: dict[string, Unknown] | None = None, local: bool = None, environ: Sequence[string] = [], configure: bool = False, remotable: bool = False, doc: string | None = None) -> callable
             307..328 "_repository_rule_impl": def _repository_rule_impl(repository_ctx) -> Unknown
@@ -1606,16 +1607,16 @@ my_rule = repository_rule(
         expect![[r#"
             26..29 "ctx": repository_ctx
             26..34 "ctx.attr": struct
-            26..36 "ctx.attr.a": Unknown
+            26..36 "ctx.attr.a": Label
             41..44 "ctx": repository_ctx
             41..49 "ctx.attr": struct
-            41..51 "ctx.attr.b": dict[Unknown, string]
+            41..51 "ctx.attr.b": dict[Label, string]
             56..59 "ctx": repository_ctx
             56..64 "ctx.attr": struct
-            56..66 "ctx.attr.c": list[Unknown]
+            56..66 "ctx.attr.c": list[Label]
             71..74 "ctx": repository_ctx
             71..79 "ctx.attr": struct
-            71..81 "ctx.attr.d": dict[string, Unknown]
+            71..81 "ctx.attr.d": dict[string, Label]
             83..90 "my_rule": repository_rule
             93..108 "repository_rule": def repository_rule(implementation: Unknown, attrs: dict[string, Unknown] | None = None, local: bool = None, environ: Sequence[string] = [], configure: bool = False, remotable: bool = False, doc: string | None = None) -> callable
             131..141 "_rule_impl": def _rule_impl(ctx) -> Unknown
@@ -1637,6 +1638,43 @@ my_rule = repository_rule(
             274..304 "attr.string_keyed_label_dict()": Attribute
             155..311 "{\n        \"a\": attr.label(),\n        \"b\": attr.label_keyed_string_dict(),\n        \"c\": attr.label_list(),\n        \"d\": attr.string_keyed_label_dict(),\n    }": dict[string, Attribute]
             93..314 "repository_rule(\n    implementation = _rule_impl,\n    attrs = {\n        \"a\": attr.label(),\n        \"b\": attr.label_keyed_string_dict(),\n        \"c\": attr.label_list(),\n        \"d\": attr.string_keyed_label_dict(),\n    },\n)": repository_rule
+        "#]],
+        InferenceOptions {
+            infer_ctx_attributes: true,
+            use_code_flow_analysis: true,
+            allow_unused_definitions: true,
+        },
+    );
+}
+
+#[test]
+fn test_repository_rule_label_attr_resolves_to_label() {
+    check_infer_with_options(
+        r#"
+def _repo_impl(ctx):
+    x = ctx.attr.src
+
+my_rule = repository_rule(
+    implementation = _repo_impl,
+    attrs = {
+        "src": attr.label(),
+    },
+)
+"#,
+        expect![[r#"
+            26..27 "x": Label
+            30..33 "ctx": repository_ctx
+            30..38 "ctx.attr": struct
+            30..42 "ctx.attr.src": Label
+            44..51 "my_rule": repository_rule
+            54..69 "repository_rule": def repository_rule(implementation: Unknown, attrs: dict[string, Unknown] | None = None, local: bool = None, environ: Sequence[string] = [], configure: bool = False, remotable: bool = False, doc: string | None = None) -> callable
+            92..102 "_repo_impl": def _repo_impl(ctx) -> Unknown
+            126..131 "\"src\"": Literal["src"]
+            133..137 "attr": attr
+            133..143 "attr.label": def label(*args, **kwargs) -> Unknown
+            133..145 "attr.label()": Attribute
+            116..152 "{\n        \"src\": attr.label(),\n    }": dict[string, Attribute]
+            54..155 "repository_rule(\n    implementation = _repo_impl,\n    attrs = {\n        \"src\": attr.label(),\n    },\n)": repository_rule
         "#]],
         InferenceOptions {
             infer_ctx_attributes: true,
